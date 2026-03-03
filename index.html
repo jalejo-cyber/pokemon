@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Entrevistamon - Demo</title>
+<style>
+body {
+  margin: 0;
+  background: #1e1e1e;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+canvas {
+  display: block;
+  margin: auto;
+  background: #2c3e50;
+}
+
+.dialog-box {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  background: #111;
+  border: 4px solid white;
+  color: white;
+  padding: 15px;
+  display: none;
+}
+
+.dialog-speaker {
+  font-weight: bold;
+  color: orange;
+}
+
+.cv-panel {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  background: #222;
+  border: 4px solid #4cafef;
+  color: white;
+  padding: 20px;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="960" height="540"></canvas>
+
+<div class="dialog-box" id="dialogBox">
+  <div class="dialog-speaker" id="dialogSpeaker"></div>
+  <div id="dialogText"></div>
+  <div style="margin-top:10px; font-size:12px;">(Click o ESPACIO)</div>
+</div>
+
+<div class="cv-panel" id="cvPanel">
+  <h2>Currículum Vitae</h2>
+  <p>• Datos personales</p>
+  <p>• Formación</p>
+  <p>• Experiencia</p>
+  <p>• Habilidades</p>
+  <p style="color:lightgreen;">+ Preparación obtenida</p>
+  <p style="font-size:12px;">Pulsa ESC para cerrar</p>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const dialogBox = document.getElementById("dialogBox");
+const dialogSpeaker = document.getElementById("dialogSpeaker");
+const dialogText = document.getElementById("dialogText");
+const cvPanel = document.getElementById("cvPanel");
+
+let keys = {};
+let state = "intro";
+
+let player = {
+  x: 100,
+  y: 100,
+  size: 30,
+  speed: 3
+};
+
+let cvChecked = false;
+let selectiMet = false;
+
+let dialogData = [];
+let dialogIndex = 0;
+
+const introDialog = [
+  {speaker:"Orienta Fomenta Pérez", text:"¡Hola! Soy la Técnica de Recursos Humanos."},
+  {speaker:"Orienta Fomenta Pérez", text:"Bienvenido/a al viaje hacia tu inserción laboral."},
+  {speaker:"Orienta Fomenta Pérez", text:"Aquí descubrirás buenas y malas decisiones."},
+  {speaker:"Orienta Fomenta Pérez", text:"¡Vamos!"}
+];
+
+const selectiDialog = [
+  {speaker:"Selecti", text:"¡Hola compi!"},
+  {speaker:"Selecti", text:"Recuerda que tienes una entrevista hoy."},
+  {speaker:"Selecti", text:"Creo que dejaste tu CV abierto en el ordenador."}
+];
+
+function startDialog(dialog) {
+  dialogData = dialog;
+  dialogIndex = 0;
+  dialogBox.style.display = "block";
+  showDialog();
+}
+
+function showDialog() {
+  if (dialogIndex >= dialogData.length) {
+    dialogBox.style.display = "none";
+    if(state === "intro") state = "house";
+    return;
+  }
+  dialogSpeaker.textContent = dialogData[dialogIndex].speaker;
+  dialogText.textContent = dialogData[dialogIndex].text;
+}
+
+function nextDialog() {
+  dialogIndex++;
+  showDialog();
+}
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+
+  if(e.key === " " && dialogBox.style.display === "block") {
+    nextDialog();
+  }
+
+  if(e.key === "Escape") {
+    cvPanel.style.display = "none";
+  }
+
+  if(e.key === "e" && state === "house") {
+    interact();
+  }
+});
+
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+document.addEventListener("click", () => {
+  if(dialogBox.style.display === "block") nextDialog();
+});
+
+function interact() {
+  // Ordenador
+  if(player.x > 250 && player.x < 320 && player.y > 150 && player.y < 220) {
+    cvPanel.style.display = "block";
+    cvChecked = true;
+  }
+
+  // Puerta
+  if(player.x > 850 && player.y > 350) {
+    startDialog([{speaker:"Sistema", text:"Aún no. Prepárate antes de salir."}]);
+  }
+}
+
+function update() {
+  if(state !== "house") return;
+
+  if(dialogBox.style.display === "block") return;
+
+  if(keys["ArrowUp"] || keys["w"]) player.y -= player.speed;
+  if(keys["ArrowDown"] || keys["s"]) player.y += player.speed;
+  if(keys["ArrowLeft"] || keys["a"]) player.x -= player.speed;
+  if(keys["ArrowRight"] || keys["d"]) player.x += player.speed;
+
+  // Selecti trigger
+  if(!selectiMet && player.x > 500 && player.y > 350) {
+    selectiMet = true;
+    startDialog(selectiDialog);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(state === "intro") {
+    ctx.fillStyle = "#34495e";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  if(state === "house") {
+    // Habitación
+    ctx.fillStyle = "#3c6382";
+    ctx.fillRect(50,50,350,250);
+
+    // Ordenador
+    ctx.fillStyle = "#4cafef";
+    ctx.fillRect(260,160,60,40);
+
+    // Cocina
+    ctx.fillStyle = "#2f3640";
+    ctx.fillRect(420,280,480,220);
+
+    // Selecti
+    ctx.fillStyle = "green";
+    ctx.fillRect(520,380,30,30);
+
+    // Puerta
+    ctx.fillStyle = "red";
+    ctx.fillRect(880,360,40,80);
+
+    // Jugador
+    ctx.fillStyle = "white";
+    ctx.fillRect(player.x, player.y, player.size, player.size);
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+startDialog(introDialog);
+gameLoop();
+</script>
+</body>
+</html>
