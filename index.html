@@ -1,903 +1,165 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="ca">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Entrevistamon - Demo (Top-down)</title>
-  <style>
-    :root{
-      --ui-bg: #0f1116;
-      --ui-panel: #141a24;
-      --ui-border: #eaeaea;
-      --ui-accent: #ffb14a;
-      --ui-muted: #b9c1d1;
-      --good: #7dffb2;
-      --bad: #ff6b6b;
-    }
-    html, body { height: 100%; }
-    body{
-      margin:0;
-      background:#0b0e14;
-      color:#fff;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      overflow:hidden;
-    }
-    .wrap{
-      position:relative;
-      width: min(100vw, 1100px);
-      height: min(100vh, 650px);
-      margin: 0 auto;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    canvas{
-      width:100%;
-      height:100%;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-      background:#111827;
-      border: 2px solid rgba(255,255,255,.15);
-      border-radius:14px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.35);
-    }
-
-    /* UI: diálogo */
-    .dialog {
-      position:absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 14px;
-      width: calc(100% - 28px);
-      max-width: 1020px;
-      background: var(--ui-panel);
-      border: 4px solid var(--ui-border);
-      border-radius: 14px;
-      padding: 14px 16px;
-      display:none;
-      box-sizing:border-box;
-    }
-    .dialog .speaker{
-      font-weight: 800;
-      color: var(--ui-accent);
-      margin-bottom: 6px;
-      font-size: 18px;
-      letter-spacing:.2px;
-    }
-    .dialog .text{
-      font-size: 16px;
-      line-height: 1.35;
-      color: #fff;
-      white-space: pre-wrap;
-    }
-    .dialog .hint{
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--ui-muted);
-      display:flex;
-      justify-content: space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    /* UI: HUD arriba */
-    .hud{
-      position:absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      justify-content: space-between;
-      pointer-events:none;
-    }
-    .pill{
-      pointer-events:none;
-      background: rgba(20,26,36,.85);
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 13px;
-      color: var(--ui-muted);
-      backdrop-filter: blur(6px);
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-    }
-    .pill b{ color:#fff; font-weight:800; }
-    .tag{
-      font-size:12px;
-      padding: 2px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.20);
-      color:#fff;
-      opacity:.95;
-    }
-    .tag.good{ background: rgba(125,255,178,.12); border-color: rgba(125,255,178,.35); }
-    .tag.bad{ background: rgba(255,107,107,.12); border-color: rgba(255,107,107,.35); }
-
-    /* UI: panel CV */
-    .modal{
-      position:absolute;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(6px);
-    }
-    .modal .panel{
-      width: min(720px, calc(100% - 28px));
-      background: #121826;
-      border: 4px solid #4cb3ff;
-      border-radius: 18px;
-      padding: 18px 20px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    .panel h2{
-      margin:0 0 10px 0;
-      color:#9ad8ff;
-      letter-spacing:.2px;
-    }
-    .panel p{ margin: 8px 0; color:#e9eefc; }
-    .panel .ok{ color: var(--good); font-weight: 700; }
-    .panel .small{ color: var(--ui-muted); font-size: 12px; margin-top: 12px; }
-
-    /* UI: pantalla intro */
-    .introTitle{
-      position:absolute;
-      top: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-weight: 900;
-      letter-spacing: .6px;
-      font-size: 18px;
-      color: rgba(255,255,255,.92);
-      text-shadow: 0 2px 14px rgba(0,0,0,.45);
-      pointer-events:none;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Entrevistamon GBA</title>
+<style>
+body {
+  margin:0;
+  background:#000;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+canvas {
+  image-rendering: pixelated;
+  border:4px solid #222;
+}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="introTitle" id="introTitle">Entrevistamon — Demo</div>
-    <canvas id="game" width="960" height="540"></canvas>
 
-    <div class="hud">
-      <div class="pill" id="statusPill">
-        <b>Preparación</b>
-        <span id="prepText">Pendiente (revisa CV)</span>
-        <span class="tag bad" id="prepTag">PENDIENTE</span>
-      </div>
-      <div class="pill" id="helpPill">
-        <span><b>Controles</b> WASD/Flechas · <b>E</b> interactuar · <b>Espacio/Clic</b> diálogo · <b>ESC</b> cerrar CV</span>
-      </div>
-    </div>
-
-    <div class="dialog" id="dialog">
-      <div class="speaker" id="dialogSpeaker"></div>
-      <div class="text" id="dialogText"></div>
-      <div class="hint">
-        <span>(Clic o ESPACIO para continuar)</span>
-        <span id="dialogExtra"></span>
-      </div>
-    </div>
-
-    <div class="modal" id="cvModal">
-      <div class="panel">
-        <h2>Currículum Vitae (Prototipo)</h2>
-        <p>• Datos personales</p>
-        <p>• Formación</p>
-        <p>• Experiencia</p>
-        <p>• Habilidades</p>
-        <p class="ok">✅ Has revisado tu CV. (+Preparación)</p>
-        <p class="small">Pulsa <b>ESC</b> para cerrar</p>
-      </div>
-    </div>
-  </div>
+<canvas id="game" width="480" height="320"></canvas>
 
 <script>
-(() => {
-  // =========================================================
-  // Config / utilidades
-  // =========================================================
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d", { alpha: false });
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-  const dialogEl = document.getElementById("dialog");
-  const dialogSpeakerEl = document.getElementById("dialogSpeaker");
-  const dialogTextEl = document.getElementById("dialogText");
-  const dialogExtraEl = document.getElementById("dialogExtra");
-  const cvModal = document.getElementById("cvModal");
+const TILE = 16;
+const SCALE = 3;
 
-  const prepText = document.getElementById("prepText");
-  const prepTag = document.getElementById("prepTag");
-  const introTitle = document.getElementById("introTitle");
+ctx.scale(SCALE, SCALE);
 
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const rectsOverlap = (a,b) =>
-    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const MAP_W = 30;
+const MAP_H = 20;
 
-  // =========================================================
-  // Sprites pixel art minimalistas (generados por código)
-  // - cada sprite se pinta en un canvas pequeño y luego se escala
-  // =========================================================
-  const makeSprite = (w, h, drawFn) => {
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    const g = c.getContext("2d");
-    g.imageSmoothingEnabled = false;
-    drawFn(g);
-    return c;
-  };
+const colors = {
+  floor:"#C8B860",
+  floorDark:"#B8A850",
+  wall:"#3A4A6A",
+  wallDark:"#2A3955",
+  carpet:"#7ED060",
+  carpetBorder:"#FFFFFF",
+  bed:"#6B78D6",
+  desk:"#8B5A2B",
+  stair:"#9AA9C0"
+};
 
-  // Paleta clásica
-  const PAL = {
-    skin: "#f1c7a5",
-    hair: "#2a1b16",
-    shirt1: "#3aa6ff",
-    shirt2: "#1d70c8",
-    pants: "#2e3a52",
-    shoes: "#1b1f2a",
-    green: "#2bd46e",
-    red: "#ff4b4b",
-    white: "#f7f7f7",
-    outline: "#0b0e14",
-    orange: "#ffb14a",
-    purple: "#8b5cf6",
-  };
+function drawTile(x,y,color){
+  ctx.fillStyle=color;
+  ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+}
 
-  // Sprite-sheet: 4 direcciones * 3 frames (como Pokémon clásico)
-  // Dirección orden: 0=abajo, 1=izquierda, 2=derecha, 3=arriba
-  // Frame: 0=parado, 1=paso1, 2=paso2
-  const SPR_W = 16, SPR_H = 16;
+function drawParquet(x,y){
+  drawTile(x,y, colors.floor);
+  ctx.strokeStyle = colors.floorDark;
+  ctx.beginPath();
+  ctx.moveTo(x*TILE, y*TILE+TILE);
+  ctx.lineTo(x*TILE+TILE, y*TILE);
+  ctx.stroke();
+}
 
-  function drawLittlePerson(g, colors, dir, frame){
-    // fondo transparente
-    g.clearRect(0,0,SPR_W,SPR_H);
+function drawCarpet(x,y){
+  drawTile(x,y, colors.carpet);
+  ctx.strokeStyle = colors.carpetBorder;
+  ctx.strokeRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);
+  ctx.fillStyle="#5CBF4B";
+  ctx.fillRect(x*TILE+6,y*TILE+6,4,4);
+}
 
-    // helper píxel
-    const px = (x,y,c) => { g.fillStyle=c; g.fillRect(x,y,1,1); };
+function drawBed(x,y){
+  drawTile(x,y, colors.bed);
+  ctx.fillStyle="#D8D8FF";
+  ctx.fillRect(x*TILE+4,y*TILE+4,8,6);
+}
 
-    // animación: pies alternan
-    const step = (frame === 1 ? -1 : frame === 2 ? 1 : 0);
+function drawDesk(x,y){
+  drawTile(x,y, colors.desk);
+  ctx.fillStyle="#4CB3FF";
+  ctx.fillRect(x*TILE+5,y*TILE+3,6,6);
+}
 
-    // Cabeza
-    for(let y=2; y<=6; y++){
-      for(let x=6; x<=9; x++) px(x,y,colors.skin);
-    }
-    // Pelo
-    for(let x=6; x<=9; x++) px(x,2,colors.hair);
-    px(6,3,colors.hair); px(9,3,colors.hair);
-    // Ojos según dirección
-    if(dir===0){ px(7,4,colors.outline); px(8,4,colors.outline); }
-    if(dir===3){ px(7,4,colors.hair); px(8,4,colors.hair); } // mirando arriba: ojos ocultos
-    if(dir===1){ px(6,4,colors.outline); }
-    if(dir===2){ px(9,4,colors.outline); }
+function drawStairs(x,y){
+  drawTile(x,y, colors.stair);
+  ctx.fillStyle="#7F8EA3";
+  ctx.fillRect(x*TILE+4,y*TILE+4,8,2);
+  ctx.fillRect(x*TILE+4,y*TILE+8,8,2);
+}
 
-    // Cuerpo (camisa)
-    for(let y=7; y<=11; y++){
-      for(let x=5; x<=10; x++) px(x,y,colors.shirt1);
-    }
-    // Detalles camisa
-    px(7,8,colors.shirt2); px(8,8,colors.shirt2);
-    // Brazos
-    px(4,8,colors.skin); px(11,8,colors.skin);
-    px(4,9,colors.skin); px(11,9,colors.skin);
+function drawWall(x,y){
+  drawTile(x,y, colors.wall);
+  ctx.fillStyle=colors.wallDark;
+  ctx.fillRect(x*TILE,y*TILE, TILE, 3);
+}
 
-    // Pantalón
-    for(let y=12; y<=13; y++){
-      for(let x=6; x<=9; x++) px(x,y,colors.pants);
-    }
+const player = {x:10, y:10};
+const selecti = {x:20, y:14};
 
-    // Piernas / zapatos animados
-    // base
-    px(6,14,colors.shoes); px(9,14,colors.shoes);
-    // paso
-    if(dir===0 || dir===3){
-      px(6+step,15,colors.shoes);
-      px(9-step,15,colors.shoes);
-    } else {
-      // lateral: “balanceo”
-      px(7,15,colors.shoes);
-      px(8,15,colors.shoes);
-    }
+function drawPlayer(px,py){
+  ctx.fillStyle="#FF0000";
+  ctx.fillRect(px*TILE+4,py*TILE+4,8,8);
+  ctx.fillStyle="#FFF";
+  ctx.fillRect(px*TILE+6,py*TILE+6,4,4);
+}
 
-    // Contorno simple
-    g.fillStyle = colors.outline;
-    // borde cabeza
-    px(5,3,colors.outline); px(10,3,colors.outline);
-    px(5,4,colors.outline); px(10,4,colors.outline);
-    px(5,5,colors.outline); px(10,5,colors.outline);
-    px(6,7,colors.outline); px(9,7,colors.outline);
-    // laterales cuerpo
-    for(let y=8; y<=13; y++){
-      px(4,y,colors.outline);
-      px(11,y,colors.outline);
+function drawNPC(px,py){
+  ctx.fillStyle="#00AA55";
+  ctx.fillRect(px*TILE+4,py*TILE+4,8,8);
+}
+
+function drawMap(){
+  for(let y=0;y<MAP_H;y++){
+    for(let x=0;x<MAP_W;x++){
+      drawParquet(x,y);
     }
   }
 
-  function makeCharacterSheet(colors){
-    const sheet = makeSprite(SPR_W*3, SPR_H*4, (g) => {
-      for(let dir=0; dir<4; dir++){
-        for(let frame=0; frame<3; frame++){
-          g.save();
-          g.translate(frame*SPR_W, dir*SPR_H);
-          drawLittlePerson(g, colors, dir, frame);
-          g.restore();
-        }
-      }
-    });
-    return sheet;
+  // parets
+  for(let x=0;x<MAP_W;x++){
+    drawWall(x,0);
+    drawWall(x,MAP_H-1);
+  }
+  for(let y=0;y<MAP_H;y++){
+    drawWall(0,y);
+    drawWall(MAP_W-1,y);
   }
 
-  const playerSheet = makeCharacterSheet({
-    skin: PAL.skin, hair: PAL.hair,
-    shirt1: PAL.shirt1, shirt2: PAL.shirt2,
-    pants: PAL.pants, shoes: PAL.shoes,
-    outline: PAL.outline
-  });
-
-  const selectiSheet = makeCharacterSheet({
-    skin: PAL.skin, hair: "#123014",
-    shirt1: PAL.green, shirt2: "#12994a",
-    pants: "#2b2f3a", shoes: PAL.shoes,
-    outline: PAL.outline
-  });
-
-  const mentorSheet = makeCharacterSheet({
-    skin: PAL.skin, hair: "#3c2a1f",
-    shirt1: PAL.purple, shirt2: "#6d28d9",
-    pants: "#233044", shoes: PAL.shoes,
-    outline: PAL.outline
-  });
-
-  // =========================================================
-  // Juego: tilemap + colisiones + cámara
-  // =========================================================
-  const TILE = 32;
-
-  // IDs tiles
-  const T = {
-    VOID: 0,
-    FLOOR1: 1,
-    FLOOR2: 2,
-    WALL: 3,
-    RUG: 4,
-    DESK: 5,
-    BED: 6,
-    STAIRS: 7,
-    DOOR: 8,
-    KITCHEN: 9,
-    TABLE: 10
-  };
-
-  // Mapa 30x17 = 960x544 aprox (encaja con canvas 960x540)
-  const MAP_W = 30, MAP_H = 17;
-
-  // Construimos un mapa simple: habitación arriba izq + cocina abajo derecha
-  const map = Array.from({length: MAP_H}, () => Array(MAP_W).fill(T.VOID));
-
-  function fillRect(x,y,w,h,t){
-    for(let j=y; j<y+h; j++){
-      for(let i=x; i<x+w; i++){
-        if(i>=0 && i<MAP_W && j>=0 && j<MAP_H) map[j][i]=t;
-      }
-    }
-  }
-
-  // Base floor
-  fillRect(0,0,MAP_W,MAP_H,T.FLOOR2);
-
-  // Pared perimetral
-  for(let x=0;x<MAP_W;x++){ map[0][x]=T.WALL; map[MAP_H-1][x]=T.WALL; }
-  for(let y=0;y<MAP_H;y++){ map[y][0]=T.WALL; map[y][MAP_W-1]=T.WALL; }
-
-  // Habitación (zona arriba izq)
-  fillRect(2,2,11,7,T.FLOOR1);
-  // Paredes habitación
-  for(let x=2;x<13;x++){ map[2][x]=T.WALL; map[8][x]=T.WALL; }
-  for(let y=2;y<9;y++){ map[y][2]=T.WALL; map[y][12]=T.WALL; }
-  // Hueco puerta habitación hacia pasillo
-  map[8][7]=T.FLOOR1; map[8][8]=T.FLOOR1;
-
-  // Pasillo y escalera
-  fillRect(6,9,8,2,T.FLOOR1);
-  // Escaleras en el centro del pasillo
-  map[9][9]=T.STAIRS; map[9][10]=T.STAIRS;
-
-  // Cocina/comedor (abajo derecha)
-  fillRect(14,9,14,6,T.KITCHEN);
-  // Paredes cocina (borde)
-  for(let x=14;x<28;x++){ map[9][x]=T.WALL; map[14][x]=T.WALL; }
-  for(let y=9;y<15;y++){ map[y][14]=T.WALL; map[y][27]=T.WALL; }
-  // Hueco entrada cocina (desde pasillo)
-  map[11][14]=T.KITCHEN;
-
-  // Puerta salida (bloqueada) en cocina
-  map[13][27]=T.DOOR;
-
-  // Objetos habitación: cama, escritorio/PC, armario (armario como pared)
-  map[4][4]=T.BED; map[4][5]=T.BED; map[5][4]=T.BED; map[5][5]=T.BED;
-  map[5][9]=T.DESK; map[5][10]=T.DESK;
-  // alfombra
-  fillRect(6,6,4,2,T.RUG);
-
-  // Mesa en cocina
-  map[12][20]=T.TABLE; map[12][21]=T.TABLE; map[13][20]=T.TABLE; map[13][21]=T.TABLE;
-
-  // Colisionables
-  const solidTiles = new Set([T.WALL, T.BED, T.DESK, T.TABLE, T.DOOR]);
-
-  // Interacciones (tile-based)
-  // PC encima del escritorio: consideramos interactuable en (10,5) y (9,5)
-  const computerTiles = new Set(["9,5","10,5"]);
-  const doorTiles = new Set(["27,13"]);
-
-  // NPC Selecti en cocina
-  const selecti = { x: 18*TILE + 8, y: 12*TILE + 6, w: 22, h: 26, dir: 0, anim: 0 };
-
-  // Jugador
-  const player = {
-    x: 7*TILE + 8, y: 6*TILE + 8,
-    w: 22, h: 26,
-    dir: 0, // 0 abajo, 1 izq, 2 der, 3 arriba
-    animT: 0,
-    frame: 0,
-    speed: 130, // px/s
-    canMove: false
-  };
-
-  // Cámara
-  const cam = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-
-  // =========================================================
-  // Estados y diálogos
-  // =========================================================
-  let state = "INTRO"; // INTRO, HOUSE
-  let cvChecked = false;
-  let selectiMet = false;
-
-  const introDialog = [
-    { speaker: "Orienta Fomenta Pérez", text: "¡Hola! Soy la Técnica de Recursos humanos, Orienta Fomenta Pérez, es un placer. Bienvenido/da en este viaje conocido como inserción laboral." },
-    { speaker: "Orienta Fomenta Pérez", text: "En este proceso de selección iremos viendo cuáles son las mejores decisiones y también las peores." },
-    { speaker: "Orienta Fomenta Pérez", text: "Espero que saques provecho de este aprendizaje. ¡Vamos!" }
-  ];
-
-  const selectiDialog = [
-    { speaker: "Selecti", text: "¡Hola compi!" },
-    { speaker: "Selecti", text: "Recuerda que antes de ir a la entrevista de trabajo deberías leerte el CV, creo que lo has dejado abierto en el ordenador." }
-  ];
-
-  let dialog = {
-    active: false,
-    lines: [],
-    i: 0,
-    onFinish: null
-  };
-
-  function openDialog(lines, onFinish=null, extraHint=""){
-    dialog.active = true;
-    dialog.lines = lines;
-    dialog.i = 0;
-    dialog.onFinish = onFinish;
-    dialogEl.style.display = "block";
-    dialogExtraEl.textContent = extraHint || "";
-    renderDialogLine();
-    player.canMove = false;
-  }
-
-  function renderDialogLine(){
-    const line = dialog.lines[dialog.i];
-    dialogSpeakerEl.textContent = line.speaker || "";
-    dialogTextEl.textContent = line.text || "";
-  }
-
-  function advanceDialog(){
-    if(!dialog.active) return;
-    dialog.i++;
-    if(dialog.i >= dialog.lines.length){
-      dialog.active = false;
-      dialogEl.style.display = "none";
-      const cb = dialog.onFinish;
-      dialog.onFinish = null;
-      if(cb) cb();
-      // re-habilitar movimiento si no hay modal
-      if(cvModal.style.display !== "flex") player.canMove = true;
-      return;
-    }
-    renderDialogLine();
-  }
-
-  function openCV(){
-    cvChecked = true;
-    updatePrepUI();
-    cvModal.style.display = "flex";
-    player.canMove = false;
-  }
-
-  function closeCV(){
-    cvModal.style.display = "none";
-    if(!dialog.active) player.canMove = true;
-  }
-
-  function updatePrepUI(){
-    if(cvChecked){
-      prepText.textContent = "OK (CV revisado)";
-      prepTag.textContent = "OK";
-      prepTag.classList.remove("bad");
-      prepTag.classList.add("good");
-    } else {
-      prepText.textContent = "Pendiente (revisa CV)";
-      prepTag.textContent = "PENDIENTE";
-      prepTag.classList.remove("good");
-      prepTag.classList.add("bad");
-    }
-  }
-
-  // =========================================================
-  // Input
-  // =========================================================
-  const keys = new Set();
-  window.addEventListener("keydown", (e) => {
-    // Evita scroll con flechas/espacio
-    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
-
-    // Diálogo
-    if(dialog.active && (e.key === " " || e.key === "Enter")){
-      advanceDialog();
-      return;
-    }
-    // Cerrar CV
-    if(e.key === "Escape"){
-      if(cvModal.style.display === "flex") closeCV();
-      return;
-    }
-    // Interactuar
-    if(e.key.toLowerCase() === "e"){
-      if(state === "HOUSE" && !dialog.active && cvModal.style.display !== "flex"){
-        tryInteract();
-      }
-      return;
-    }
-
-    keys.add(e.key);
-  }, { passive:false });
-
-  window.addEventListener("keyup", (e) => keys.delete(e.key));
-
-  window.addEventListener("click", () => {
-    if(dialog.active) advanceDialog();
-  });
-
-  // =========================================================
-  // Interacciones
-  // =========================================================
-  function worldToTile(px){ return Math.floor(px / TILE); }
-
-  function tryInteract(){
-    // Interacción basada en el tile delante del jugador
-    const front = getFrontTile();
-    const k = `${front.tx},${front.ty}`;
-
-    if(computerTiles.has(k)){
-      openCV();
-      return;
-    }
-    if(doorTiles.has(k)){
-      openDialog([{speaker:"Sistema", text:"Aún no. Antes de salir, asegúrate de prepararte bien para la entrevista."}]);
-      return;
-    }
-  }
-
-  function getFrontTile(){
-    const cx = player.x + player.w/2;
-    const cy = player.y + player.h/2;
-    let fx = cx, fy = cy;
-    const d = 18;
-    if(player.dir===0) fy += d;
-    if(player.dir===3) fy -= d;
-    if(player.dir===1) fx -= d;
-    if(player.dir===2) fx += d;
-    return { tx: worldToTile(fx), ty: worldToTile(fy) };
-  }
-
-  // =========================================================
-  // Movimiento + colisiones
-  // =========================================================
-  function isSolidAt(px, py){
-    const tx = worldToTile(px);
-    const ty = worldToTile(py);
-    if(tx<0 || tx>=MAP_W || ty<0 || ty>=MAP_H) return true;
-    return solidTiles.has(map[ty][tx]);
-  }
-
-  function moveWithCollisions(dt){
-    if(!player.canMove) return;
-
-    let vx = 0, vy = 0;
-    if(keys.has("ArrowUp") || keys.has("w") || keys.has("W")) vy -= 1;
-    if(keys.has("ArrowDown") || keys.has("s") || keys.has("S")) vy += 1;
-    if(keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) vx -= 1;
-    if(keys.has("ArrowRight") || keys.has("d") || keys.has("D")) vx += 1;
-
-    // Normalizar diagonal
-    if(vx !== 0 && vy !== 0){
-      const inv = 1/Math.sqrt(2);
-      vx *= inv; vy *= inv;
-    }
-
-    // Dirección para sprite
-    if(vx !== 0 || vy !== 0){
-      if(Math.abs(vx) > Math.abs(vy)){
-        player.dir = vx < 0 ? 1 : 2;
-      } else {
-        player.dir = vy < 0 ? 3 : 0;
-      }
-    }
-
-    const speed = player.speed * dt;
-    const dx = vx * speed;
-    const dy = vy * speed;
-
-    // Animación
-    if(vx !== 0 || vy !== 0){
-      player.animT += dt * 9; // velocidad anim
-      const step = Math.floor(player.animT) % 2; // 0/1
-      player.frame = step === 0 ? 1 : 2; // frames caminar
-    } else {
-      player.animT = 0;
-      player.frame = 0; // parado
-    }
-
-    // Colisión por ejes (AABB contra tiles)
-    // X
-    let nx = player.x + dx;
-    if(dx !== 0){
-      const left = nx;
-      const right = nx + player.w;
-      const top = player.y;
-      const bottom = player.y + player.h;
-
-      const y1 = top + 2, y2 = bottom - 2;
-      if(dx > 0){
-        if(isSolidAt(right, y1) || isSolidAt(right, y2)){
-          nx = Math.floor((worldToTile(right)) * TILE) - player.w - 0.01;
-        }
-      } else {
-        if(isSolidAt(left, y1) || isSolidAt(left, y2)){
-          nx = (worldToTile(left)+1) * TILE + 0.01;
-        }
-      }
-    }
-    player.x = nx;
-
-    // Y
-    let ny = player.y + dy;
-    if(dy !== 0){
-      const left = player.x;
-      const right = player.x + player.w;
-      const top = ny;
-      const bottom = ny + player.h;
-
-      const x1 = left + 2, x2 = right - 2;
-      if(dy > 0){
-        if(isSolidAt(x1, bottom) || isSolidAt(x2, bottom)){
-          ny = Math.floor((worldToTile(bottom)) * TILE) - player.h - 0.01;
-        }
-      } else {
-        if(isSolidAt(x1, top) || isSolidAt(x2, top)){
-          ny = (worldToTile(top)+1) * TILE + 0.01;
-        }
-      }
-    }
-    player.y = ny;
-  }
-
-  // =========================================================
-  // Trigger Selecti al acercarse (zona)
-  // =========================================================
-  function updateNPCTriggers(){
-    if(state !== "HOUSE") return;
-    if(selectiMet) return;
-    if(dialog.active) return;
-    if(cvModal.style.display === "flex") return;
-
-    const zone = {
-      x: selecti.x - 40, y: selecti.y - 40,
-      w: selecti.w + 80, h: selecti.h + 80
-    };
-    const p = { x: player.x, y: player.y, w: player.w, h: player.h };
-    if(rectsOverlap(zone, p)){
-      selectiMet = true;
-      openDialog(selectiDialog, null, "Consejo: revisa tu CV antes de salir");
-    }
-  }
-
-  // =========================================================
-  // Render tiles
-  // =========================================================
-  function drawTile(id, x, y){
-    // estilos simples pero “bonitos”
-    switch(id){
-      case T.FLOOR1:
-        ctx.fillStyle = "#2a4a68"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "rgba(255,255,255,.04)"; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
-        break;
-      case T.FLOOR2:
-        ctx.fillStyle = "#1f2a3b"; ctx.fillRect(x,y,TILE,TILE);
-        break;
-      case T.KITCHEN:
-        ctx.fillStyle = "#1c3130"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "rgba(255,255,255,.03)"; ctx.fillRect(x+1,y+1,TILE-2,TILE-2);
-        break;
-      case T.WALL:
-        ctx.fillStyle = "#0b1220"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "#111e36"; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
-        break;
-      case T.RUG:
-        ctx.fillStyle = "#6b1b3a"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(x+6,y+6,TILE-12,TILE-12);
-        break;
-      case T.BED:
-        ctx.fillStyle = "#3a2b6b"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "#b8a9ff"; ctx.fillRect(x+6,y+6,TILE-12,TILE-12);
-        break;
-      case T.DESK:
-        ctx.fillStyle = "#6a4b2b"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "#4cb3ff"; ctx.fillRect(x+10,y+8,12,10); // “monitor/PC”
-        break;
-      case T.TABLE:
-        ctx.fillStyle = "#6a4b2b"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(x+6,y+6,TILE-12,TILE-12);
-        break;
-      case T.STAIRS:
-        ctx.fillStyle = "#2c3a4f"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "rgba(255,255,255,.15)";
-        for(let i=0;i<4;i++) ctx.fillRect(x+6, y+6+i*6, TILE-12, 2);
-        break;
-      case T.DOOR:
-        ctx.fillStyle = "#2c3a4f"; ctx.fillRect(x,y,TILE,TILE);
-        ctx.fillStyle = "#ff4b4b"; ctx.fillRect(x+10,y+6,12,20);
-        ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.fillRect(x+12,y+14,3,3);
-        break;
-      default:
-        ctx.fillStyle = "#101827"; ctx.fillRect(x,y,TILE,TILE);
-    }
-  }
-
-  function drawCharacter(sheet, x, y, dir, frame, scale=2){
-    // sheet: 3 cols frames, 4 rows dirs
-    const sx = frame * SPR_W;
-    const sy = dir * SPR_H;
-    ctx.drawImage(sheet, sx, sy, SPR_W, SPR_H, Math.round(x), Math.round(y), SPR_W*scale, SPR_H*scale);
-  }
-
-  function renderIntro(){
-    // Fondo “oficina” simple
-    ctx.fillStyle = "#1a2333";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    // Panel oficina
-    ctx.fillStyle = "#22324a";
-    ctx.fillRect(110, 80, 740, 320);
-    ctx.fillStyle = "rgba(255,255,255,.08)";
-    ctx.fillRect(130, 100, 700, 280);
-
-    // Mentora sprite grande
-    drawCharacter(mentorSheet, 170, 210, 0, 0, 6);
-
-    // Decoración
-    ctx.fillStyle = "rgba(255,255,255,.15)";
-    ctx.fillRect(520, 140, 270, 10);
-    ctx.fillRect(520, 170, 220, 10);
-    ctx.fillRect(520, 200, 240, 10);
-
-    ctx.fillStyle = "rgba(0,0,0,.35)";
-    ctx.fillRect(120, 420, 720, 40);
-    ctx.fillStyle = "rgba(255,255,255,.8)";
-    ctx.font = "700 16px system-ui";
-    ctx.fillText("Oficina de Orientación", 140, 446);
-  }
-
-  function renderHouse(){
-    // Cámara centrada en jugador
-    cam.x = player.x + player.w/2 - cam.w/2;
-    cam.y = player.y + player.h/2 - cam.h/2;
-    const worldW = MAP_W*TILE;
-    const worldH = MAP_H*TILE;
-    cam.x = clamp(cam.x, 0, Math.max(0, worldW - cam.w));
-    cam.y = clamp(cam.y, 0, Math.max(0, worldH - cam.h));
-
-    // Fondo
-    ctx.fillStyle = "#0f1625";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    // Dibuja tiles visibles
-    const startX = Math.floor(cam.x / TILE);
-    const startY = Math.floor(cam.y / TILE);
-    const endX = Math.ceil((cam.x + cam.w) / TILE);
-    const endY = Math.ceil((cam.y + cam.h) / TILE);
-
-    for(let ty=startY; ty<endY; ty++){
-      for(let tx=startX; tx<endX; tx++){
-        if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H) continue;
-        const id = map[ty][tx];
-        const x = tx*TILE - cam.x;
-        const y = ty*TILE - cam.y;
-        drawTile(id, x, y);
-
-        // Pequeño “texto PC” sobre escritorio para guiar
-        if(computerTiles.has(`${tx},${ty}`)){
-          ctx.fillStyle = "rgba(0,0,0,.35)";
-          ctx.fillRect(x+2,y-12,80,14);
-          ctx.fillStyle = "rgba(255,255,255,.9)";
-          ctx.font = "12px system-ui";
-          ctx.fillText("PC (E)", x+6, y-2);
-        }
-      }
-    }
-
-    // NPC Selecti
-    drawCharacter(selectiSheet, selecti.x - cam.x, selecti.y - cam.y, 0, 0, 2);
-
-    // Jugador
-    drawCharacter(playerSheet, player.x - cam.x, player.y - cam.y, player.dir, player.frame, 2);
-
-    // Ayuda contextual: tile delante
-    if(!dialog.active && cvModal.style.display !== "flex"){
-      const front = getFrontTile();
-      const k = `${front.tx},${front.ty}`;
-      let msg = "";
-      if(computerTiles.has(k)) msg = "Pulsa E para revisar el CV";
-      if(doorTiles.has(k)) msg = "Pulsa E para salir (bloqueado)";
-      if(msg){
-        ctx.fillStyle = "rgba(0,0,0,.45)";
-        ctx.fillRect(18, canvas.height-210, 340, 30);
-        ctx.fillStyle = "rgba(255,255,255,.92)";
-        ctx.font = "14px system-ui";
-        ctx.fillText(msg, 28, canvas.height-189);
-      }
-    }
-  }
-
-  // =========================================================
-  // Loop principal
-  // =========================================================
-  let last = performance.now();
-
-  function tick(now){
-    const dt = Math.min(0.033, (now - last) / 1000);
-    last = now;
-
-    if(state === "HOUSE"){
-      moveWithCollisions(dt);
-      updateNPCTriggers();
-      renderHouse();
-      introTitle.style.display = "none";
-    } else {
-      renderIntro();
-      introTitle.style.display = "block";
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  // =========================================================
-  // Arranque
-  // =========================================================
-  updatePrepUI();
-
-  // Arranca con la intro y luego pasa a la casa
-  openDialog(introDialog, () => {
-    state = "HOUSE";
-    player.canMove = true;
-  }, "Objetivo: prepara tu entrevista");
-
-  requestAnimationFrame(tick);
-
-})();
+  // catifa
+  drawCarpet(8,8);
+  drawCarpet(9,8);
+  drawCarpet(8,9);
+  drawCarpet(9,9);
+
+  // llit
+  drawBed(4,6);
+  drawBed(5,6);
+
+  // escriptori
+  drawDesk(14,5);
+
+  // escales
+  drawStairs(15,10);
+  drawStairs(15,11);
+}
+
+function gameLoop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawMap();
+  drawPlayer(player.x,player.y);
+  drawNPC(selecti.x,selecti.y);
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowUp") player.y--;
+  if(e.key==="ArrowDown") player.y++;
+  if(e.key==="ArrowLeft") player.x--;
+  if(e.key==="ArrowRight") player.x++;
+});
+
+gameLoop();
 </script>
+
 </body>
 </html>
