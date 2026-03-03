@@ -2,17 +2,17 @@
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
-<title>Entrevistamon GBA</title>
+<title>Entrevistamon FireRed</title>
 <style>
-body {
+body{
   margin:0;
-  background:#000;
+  background:black;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
-canvas {
+canvas{
   image-rendering: pixelated;
   border:4px solid #222;
 }
@@ -20,146 +20,115 @@ canvas {
 </head>
 <body>
 
-<canvas id="game" width="480" height="320"></canvas>
+<canvas id="game" width="720" height="480"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const TILE = 16;
+const BASE_W = 240;
+const BASE_H = 160;
 const SCALE = 3;
 
-ctx.scale(SCALE, SCALE);
+ctx.scale(SCALE,SCALE);
 
-const MAP_W = 30;
-const MAP_H = 20;
+const TILE = 16;
 
 const colors = {
-  floor:"#C8B860",
-  floorDark:"#B8A850",
-  wall:"#3A4A6A",
-  wallDark:"#2A3955",
-  carpet:"#7ED060",
-  carpetBorder:"#FFFFFF",
-  bed:"#6B78D6",
+  parquet:"#C8B860",
+  parquetDark:"#B7A74F",
+  wall:"#3E4E6E",
+  wallTop:"#2F3D5A",
+  carpet:"#78D060",
+  carpetDot:"#58B848",
+  bed:"#6C78D8",
+  pillow:"#E8E8FF",
   desk:"#8B5A2B",
-  stair:"#9AA9C0"
+  pc:"#4CB3FF",
+  stair:"#9BA8C0",
+  stairDark:"#7F8CA0"
 };
 
-function drawTile(x,y,color){
-  ctx.fillStyle=color;
-  ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+function rect(x,y,w,h,c){
+  ctx.fillStyle=c;
+  ctx.fillRect(x,y,w,h);
 }
 
-function drawParquet(x,y){
-  drawTile(x,y, colors.floor);
-  ctx.strokeStyle = colors.floorDark;
-  ctx.beginPath();
-  ctx.moveTo(x*TILE, y*TILE+TILE);
-  ctx.lineTo(x*TILE+TILE, y*TILE);
-  ctx.stroke();
-}
-
-function drawCarpet(x,y){
-  drawTile(x,y, colors.carpet);
-  ctx.strokeStyle = colors.carpetBorder;
-  ctx.strokeRect(x*TILE+1,y*TILE+1,TILE-2,TILE-2);
-  ctx.fillStyle="#5CBF4B";
-  ctx.fillRect(x*TILE+6,y*TILE+6,4,4);
-}
-
-function drawBed(x,y){
-  drawTile(x,y, colors.bed);
-  ctx.fillStyle="#D8D8FF";
-  ctx.fillRect(x*TILE+4,y*TILE+4,8,6);
-}
-
-function drawDesk(x,y){
-  drawTile(x,y, colors.desk);
-  ctx.fillStyle="#4CB3FF";
-  ctx.fillRect(x*TILE+5,y*TILE+3,6,6);
-}
-
-function drawStairs(x,y){
-  drawTile(x,y, colors.stair);
-  ctx.fillStyle="#7F8EA3";
-  ctx.fillRect(x*TILE+4,y*TILE+4,8,2);
-  ctx.fillRect(x*TILE+4,y*TILE+8,8,2);
-}
-
-function drawWall(x,y){
-  drawTile(x,y, colors.wall);
-  ctx.fillStyle=colors.wallDark;
-  ctx.fillRect(x*TILE,y*TILE, TILE, 3);
-}
-
-const player = {x:10, y:10};
-const selecti = {x:20, y:14};
-
-function drawPlayer(px,py){
-  ctx.fillStyle="#FF0000";
-  ctx.fillRect(px*TILE+4,py*TILE+4,8,8);
-  ctx.fillStyle="#FFF";
-  ctx.fillRect(px*TILE+6,py*TILE+6,4,4);
-}
-
-function drawNPC(px,py){
-  ctx.fillStyle="#00AA55";
-  ctx.fillRect(px*TILE+4,py*TILE+4,8,8);
-}
-
-function drawMap(){
-  for(let y=0;y<MAP_H;y++){
-    for(let x=0;x<MAP_W;x++){
-      drawParquet(x,y);
-    }
+function drawParquet(){
+  rect(0,0,BASE_W,BASE_H,colors.parquet);
+  ctx.strokeStyle=colors.parquetDark;
+  for(let i=-BASE_H;i<BASE_W;i+=8){
+    ctx.beginPath();
+    ctx.moveTo(i,0);
+    ctx.lineTo(i+BASE_H,BASE_H);
+    ctx.stroke();
   }
-
-  // parets
-  for(let x=0;x<MAP_W;x++){
-    drawWall(x,0);
-    drawWall(x,MAP_H-1);
-  }
-  for(let y=0;y<MAP_H;y++){
-    drawWall(0,y);
-    drawWall(MAP_W-1,y);
-  }
-
-  // catifa
-  drawCarpet(8,8);
-  drawCarpet(9,8);
-  drawCarpet(8,9);
-  drawCarpet(9,9);
-
-  // llit
-  drawBed(4,6);
-  drawBed(5,6);
-
-  // escriptori
-  drawDesk(14,5);
-
-  // escales
-  drawStairs(15,10);
-  drawStairs(15,11);
 }
 
-function gameLoop(){
+function drawWalls(){
+  rect(0,0,BASE_W,16,colors.wall);
+  rect(0,0,16,BASE_H,colors.wall);
+  rect(BASE_W-16,0,16,BASE_H,colors.wall);
+  rect(0,0,BASE_W,6,colors.wallTop);
+}
+
+function drawCarpet(){
+  rect(80,60,80,48,colors.carpet);
+  ctx.strokeStyle="#FFFFFF";
+  ctx.strokeRect(80,60,80,48);
+  rect(90,70,6,6,colors.carpetDot);
+  rect(120,85,6,6,colors.carpetDot);
+}
+
+function drawBed(){
+  rect(24,48,32,32,colors.bed);
+  rect(32,52,16,12,colors.pillow);
+}
+
+function drawDesk(){
+  rect(160,40,32,16,colors.desk);
+  rect(170,34,12,10,colors.pc);
+}
+
+function drawStairs(){
+  rect(160,96,32,32,colors.stair);
+  rect(160,96,32,6,colors.stairDark);
+  rect(160,108,32,6,colors.stairDark);
+}
+
+const player = {x:110,y:90};
+const npc = {x:180,y:110};
+
+function drawPlayer(){
+  rect(player.x,player.y,12,12,"#D03030");
+  rect(player.x+3,player.y+3,6,6,"#FFFFFF");
+}
+
+function drawNPC(){
+  rect(npc.x,npc.y,12,12,"#30B050");
+}
+
+function loop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawMap();
-  drawPlayer(player.x,player.y);
-  drawNPC(selecti.x,selecti.y);
-  requestAnimationFrame(gameLoop);
+  drawParquet();
+  drawWalls();
+  drawCarpet();
+  drawBed();
+  drawDesk();
+  drawStairs();
+  drawNPC();
+  drawPlayer();
+  requestAnimationFrame(loop);
 }
 
-document.addEventListener("keydown", e=>{
-  if(e.key==="ArrowUp") player.y--;
-  if(e.key==="ArrowDown") player.y++;
-  if(e.key==="ArrowLeft") player.x--;
-  if(e.key==="ArrowRight") player.x++;
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowUp") player.y-=4;
+  if(e.key==="ArrowDown") player.y+=4;
+  if(e.key==="ArrowLeft") player.x-=4;
+  if(e.key==="ArrowRight") player.x+=4;
 });
 
-gameLoop();
+loop();
 </script>
-
 </body>
 </html>
