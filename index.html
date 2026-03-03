@@ -1,134 +1,431 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-<meta charset="UTF-8">
-<title>Entrevistamon FireRed</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Entrevistamon — FireRed-like (Overworld)</title>
 <style>
-body{
-  margin:0;
-  background:black;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-canvas{
-  image-rendering: pixelated;
-  border:4px solid #222;
-}
+  body{
+    margin:0;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+  }
+  canvas{
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border:4px solid #222;
+    border-radius:10px;
+  }
+  .hint{
+    position:fixed;
+    top:12px; left:50%;
+    transform:translateX(-50%);
+    color:#cbd5e1;
+    font: 13px system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: rgba(10,10,14,.55);
+    border:1px solid rgba(255,255,255,.16);
+    padding:8px 12px;
+    border-radius:999px;
+    backdrop-filter: blur(6px);
+  }
 </style>
 </head>
 <body>
-
+<div class="hint">Fletxes/WASD moure · Moviment en graella 16x16 · Animació 4 direccions</div>
 <canvas id="game" width="720" height="480"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+(() => {
+  // =========================================================
+  // Render base GBA: 240x160 escalat x3
+  // =========================================================
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d", { alpha: false });
 
-const BASE_W = 240;
-const BASE_H = 160;
-const SCALE = 3;
+  const BASE_W = 240, BASE_H = 160;
+  const SCALE = 3;
+  ctx.scale(SCALE, SCALE);
+  ctx.imageSmoothingEnabled = false;
 
-ctx.scale(SCALE,SCALE);
+  const TILE = 16;
 
-const TILE = 16;
+  // =========================================================
+  // Colors FireRed-like (calent, parquet, parets ombra)
+  // =========================================================
+  const C = {
+    parquet: "#C8B860",
+    parquetDark: "#B7A74F",
+    wall: "#3E4E6E",
+    wallTop: "#2F3D5A",
+    wallInset: "#27324A",
+    carpet: "#78D060",
+    carpetDot: "#58B848",
+    bed: "#6C78D8",
+    pillow: "#E8E8FF",
+    desk: "#8B5A2B",
+    deskDark: "#6f451f",
+    pc: "#4CB3FF",
+    stair: "#9BA8C0",
+    stairDark: "#7F8CA0",
+    outline: "#1a1a1a",
+  };
 
-const colors = {
-  parquet:"#C8B860",
-  parquetDark:"#B7A74F",
-  wall:"#3E4E6E",
-  wallTop:"#2F3D5A",
-  carpet:"#78D060",
-  carpetDot:"#58B848",
-  bed:"#6C78D8",
-  pillow:"#E8E8FF",
-  desk:"#8B5A2B",
-  pc:"#4CB3FF",
-  stair:"#9BA8C0",
-  stairDark:"#7F8CA0"
-};
+  const rect = (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(x,y,w,h); };
 
-function rect(x,y,w,h,c){
-  ctx.fillStyle=c;
-  ctx.fillRect(x,y,w,h);
-}
-
-function drawParquet(){
-  rect(0,0,BASE_W,BASE_H,colors.parquet);
-  ctx.strokeStyle=colors.parquetDark;
-  for(let i=-BASE_H;i<BASE_W;i+=8){
-    ctx.beginPath();
-    ctx.moveTo(i,0);
-    ctx.lineTo(i+BASE_H,BASE_H);
-    ctx.stroke();
+  function drawParquet(){
+    rect(0,0,BASE_W,BASE_H,C.parquet);
+    ctx.strokeStyle = C.parquetDark;
+    // línies diagonals com GBA
+    for(let i=-BASE_H;i<BASE_W;i+=8){
+      ctx.beginPath();
+      ctx.moveTo(i,0);
+      ctx.lineTo(i+BASE_H,BASE_H);
+      ctx.stroke();
+    }
   }
-}
 
-function drawWalls(){
-  rect(0,0,BASE_W,16,colors.wall);
-  rect(0,0,16,BASE_H,colors.wall);
-  rect(BASE_W-16,0,16,BASE_H,colors.wall);
-  rect(0,0,BASE_W,6,colors.wallTop);
-}
+  function drawWalls(){
+    // marc paret
+    rect(0,0,BASE_W,16,C.wall);
+    rect(0,0,16,BASE_H,C.wall);
+    rect(BASE_W-16,0,16,BASE_H,C.wall);
+    rect(0,BASE_H-16,BASE_W,16,C.wall);
 
-function drawCarpet(){
-  rect(80,60,80,48,colors.carpet);
-  ctx.strokeStyle="#FFFFFF";
-  ctx.strokeRect(80,60,80,48);
-  rect(90,70,6,6,colors.carpetDot);
-  rect(120,85,6,6,colors.carpetDot);
-}
+    // “top shade”
+    rect(0,0,BASE_W,6,C.wallTop);
 
-function drawBed(){
-  rect(24,48,32,32,colors.bed);
-  rect(32,52,16,12,colors.pillow);
-}
+    // ombra interior (com si hi hagués un relleu)
+    rect(16,16,BASE_W-32,2,C.wallInset);
+    rect(16,16,2,BASE_H-32,C.wallInset);
+    rect(BASE_W-18,16,2,BASE_H-32,C.wallInset);
+    rect(16,BASE_H-18,BASE_W-32,2,C.wallInset);
+  }
 
-function drawDesk(){
-  rect(160,40,32,16,colors.desk);
-  rect(170,34,12,10,colors.pc);
-}
+  function drawCarpet(){
+    const x=80,y=60,w=80,h=48;
+    rect(x,y,w,h,C.carpet);
+    ctx.strokeStyle="#fff";
+    ctx.strokeRect(x+0.5,y+0.5,w-1,h-1);
+    // punts
+    rect(x+10,y+10,3,3,C.carpetDot);
+    rect(x+30,y+20,3,3,C.carpetDot);
+    rect(x+55,y+14,3,3,C.carpetDot);
+    rect(x+18,y+34,3,3,C.carpetDot);
+    rect(x+62,y+32,3,3,C.carpetDot);
+  }
 
-function drawStairs(){
-  rect(160,96,32,32,colors.stair);
-  rect(160,96,32,6,colors.stairDark);
-  rect(160,108,32,6,colors.stairDark);
-}
+  function drawBed(){
+    // 2x2 tiles aproximat
+    rect(24,48,32,32,C.bed);
+    rect(28,52,24,12,"#5f6bd0");
+    rect(32,54,16,10,C.pillow);
+    // ombra
+    rect(24,79,32,1,"rgba(0,0,0,.18)");
+  }
 
-const player = {x:110,y:90};
-const npc = {x:180,y:110};
+  function drawDeskAndPC(){
+    // escriptori 2 tiles ample
+    rect(160,40,32,16,C.desk);
+    rect(160,40,32,3,C.deskDark);
+    // “PC” sobre el desk
+    rect(170,30,12,10,C.pc);
+    rect(172,32,8,6,"rgba(255,255,255,.25)");
+    // ombra
+    rect(160,55,32,1,"rgba(0,0,0,.18)");
+  }
 
-function drawPlayer(){
-  rect(player.x,player.y,12,12,"#D03030");
-  rect(player.x+3,player.y+3,6,6,"#FFFFFF");
-}
+  function drawStairs(){
+    rect(160,96,32,32,C.stair);
+    rect(160,96,32,6,C.stairDark);
+    rect(160,108,32,6,C.stairDark);
+    rect(160,120,32,6,C.stairDark);
+    // barana/ombra lateral
+    rect(160,96,3,32,"rgba(0,0,0,.10)");
+  }
 
-function drawNPC(){
-  rect(npc.x,npc.y,12,12,"#30B050");
-}
+  // =========================================================
+  // Col·lisions (FireRed-like, bounding boxes simples)
+  // =========================================================
+  // Definim obstacles en tiles (x,y,w,h) en unitats tile
+  const solids = [
+    {x:0,y:0,w:15,h:1},{x:0,y:0,w:1,h:10},{x:14,y:0,w:1,h:10},{x:0,y:9,w:15,h:1}, // perimetre "habitació"
+    {x:1,y:1,w:13,h:1},{x:1,y:1,w:1,h:8},{x:13,y:1,w:1,h:8},{x:1,y:8,w:13,h:1}, // “inset” interior (evita sortir)
+    {x:1,y:3,w:2,h:2}, // llit bloc
+    {x:10,y:2,w:2,h:1}, // desk
+    {x:10,y:6,w:2,h:2}, // stairs bloc
+  ];
 
-function loop(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawParquet();
-  drawWalls();
-  drawCarpet();
-  drawBed();
-  drawDesk();
-  drawStairs();
-  drawNPC();
-  drawPlayer();
+  function tileBlocked(tx,ty){
+    for(const s of solids){
+      if(tx>=s.x && tx<s.x+s.w && ty>=s.y && ty<s.y+s.h) return true;
+    }
+    return false;
+  }
+
+  // =========================================================
+  // Sprite sheet FireRed-like (original) + animació 4 direccions
+  // - 4 direccions (down,left,right,up) x 3 frames
+  // =========================================================
+  const SPR_W = 16, SPR_H = 16;
+
+  function makeSprite(w,h,drawFn){
+    const c = document.createElement("canvas");
+    c.width=w; c.height=h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    drawFn(g);
+    return c;
+  }
+
+  // Dibuixa un overworld “trainer” original però FireRed-like
+  // dir: 0 down, 1 left, 2 right, 3 up
+  // frame: 0 idle, 1 step1, 2 step2
+  function drawTrainer(g, dir, frame, palette){
+    g.clearRect(0,0,SPR_W,SPR_H);
+    const px = (x,y,c)=>{ g.fillStyle=c; g.fillRect(x,y,1,1); };
+
+    // petites variacions de pas (peus)
+    const step = (frame===1? -1 : frame===2? 1 : 0);
+
+    // ombra al terra
+    for(let x=5;x<=10;x++) px(x,15,"rgba(0,0,0,.25)");
+
+    // Cap (pell)
+    for(let y=2;y<=6;y++) for(let x=6;x<=9;x++) px(x,y,palette.skin);
+
+    // Cabell / gorra
+    for(let x=6;x<=9;x++) px(x,2,palette.hair);
+    px(6,3,palette.hair); px(9,3,palette.hair);
+
+    // Ulls segons direcció
+    if(dir===0){ px(7,4,palette.out); px(8,4,palette.out); }
+    if(dir===1){ px(6,4,palette.out); }
+    if(dir===2){ px(9,4,palette.out); }
+    if(dir===3){
+      // mirant amunt: cap + cabell
+      px(7,4,palette.hair); px(8,4,palette.hair);
+    }
+
+    // Cos (jaqueta/armilla)
+    for(let y=7;y<=11;y++) for(let x=5;x<=10;x++) px(x,y,palette.top);
+    // detalls
+    px(7,8,palette.top2); px(8,8,palette.top2);
+    px(6,10,palette.top2); px(9,10,palette.top2);
+
+    // braços
+    px(4,8,palette.skin); px(11,8,palette.skin);
+    px(4,9,palette.skin); px(11,9,palette.skin);
+
+    // pantalons
+    for(let y=12;y<=13;y++) for(let x=6;x<=9;x++) px(x,y,palette.pants);
+
+    // peus (animació)
+    // base
+    px(6,14,palette.shoes); px(9,14,palette.shoes);
+    if(dir===0 || dir===3){
+      px(6+step,15,palette.shoes);
+      px(9-step,15,palette.shoes);
+    } else {
+      // lateral: “balanceig”
+      px(7,15,palette.shoes);
+      px(8,15,palette.shoes);
+    }
+
+    // contorn (outline)
+    const o = palette.out;
+    // silueta cap
+    px(5,3,o); px(10,3,o);
+    px(5,4,o); px(10,4,o);
+    px(5,5,o); px(10,5,o);
+    px(6,7,o); px(9,7,o);
+    // cos laterals
+    for(let y=8;y<=13;y++){ px(4,y,o); px(11,y,o); }
+  }
+
+  function makeTrainerSheet(palette){
+    // 3 cols frames, 4 rows dirs
+    return makeSprite(SPR_W*3, SPR_H*4, (g)=>{
+      for(let dir=0; dir<4; dir++){
+        for(let frame=0; frame<3; frame++){
+          g.save();
+          g.translate(frame*SPR_W, dir*SPR_H);
+          drawTrainer(g, dir, frame, palette);
+          g.restore();
+        }
+      }
+    });
+  }
+
+  // Paleta protagonista (estil “trainer” vermell)
+  const playerSheet = makeTrainerSheet({
+    skin:"#f1c7a5",
+    hair:"#2a1b16",
+    top:"#d03030",
+    top2:"#ffffff",
+    pants:"#2e3a52",
+    shoes:"#1b1f2a",
+    out:"#0b0e14"
+  });
+
+  // Paleta NPC Selecti (verd)
+  const npcSheet = makeTrainerSheet({
+    skin:"#f1c7a5",
+    hair:"#123014",
+    top:"#2bd46e",
+    top2:"#eafff2",
+    pants:"#2b2f3a",
+    shoes:"#1b1f2a",
+    out:"#0b0e14"
+  });
+
+  function drawChar(sheet, x, y, dir, frame, scale=2){
+    const sx = frame*SPR_W;
+    const sy = dir*SPR_H;
+    ctx.drawImage(sheet, sx, sy, SPR_W, SPR_H, Math.round(x), Math.round(y), SPR_W*scale, SPR_H*scale);
+  }
+
+  // =========================================================
+  // Moviment FireRed-like: en graella (tile step) amb tween suau
+  // =========================================================
+  const DIRS = {
+    down:{dx:0,dy:1, idx:0},
+    left:{dx:-1,dy:0, idx:1},
+    right:{dx:1,dy:0, idx:2},
+    up:{dx:0,dy:-1, idx:3},
+  };
+
+  const keys = new Set();
+  addEventListener("keydown", (e)=>{
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+    keys.add(e.key);
+  }, {passive:false});
+  addEventListener("keyup", (e)=> keys.delete(e.key));
+
+  function wantedDir(){
+    if(keys.has("ArrowUp") || keys.has("w") || keys.has("W")) return "up";
+    if(keys.has("ArrowDown") || keys.has("s") || keys.has("S")) return "down";
+    if(keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) return "left";
+    if(keys.has("ArrowRight") || keys.has("d") || keys.has("D")) return "right";
+    return null;
+  }
+
+  // Personatges en coordenades tile (tx,ty)
+  const player = {
+    tx: 7, ty: 6,
+    x: 7*TILE, y: 6*TILE,
+    dir: DIRS.down.idx,
+    frame: 0,
+    moving: false,
+    t: 0,
+    fromX:0, fromY:0, toX:0, toY:0,
+    stepTime: 0.14 // velocitat pas (FireRed-like)
+  };
+
+  const npc = {
+    tx: 11, ty: 7,
+    x: 11*TILE, y: 7*TILE,
+    dir: DIRS.down.idx,
+    frame: 0
+  };
+
+  function tryStartMove(){
+    if(player.moving) return;
+
+    const d = wantedDir();
+    if(!d) { player.frame = 0; return; }
+
+    const {dx,dy,idx} = DIRS[d];
+    player.dir = idx;
+
+    const ntx = player.tx + dx;
+    const nty = player.ty + dy;
+
+    // bloqueig per col·lisió + NPC
+    if(tileBlocked(ntx, nty)) return;
+    if(ntx === npc.tx && nty === npc.ty) return;
+
+    player.moving = true;
+    player.t = 0;
+    player.fromX = player.tx*TILE;
+    player.fromY = player.ty*TILE;
+    player.toX = ntx*TILE;
+    player.toY = nty*TILE;
+
+    player.tx = ntx;
+    player.ty = nty;
+  }
+
+  function updateMove(dt){
+    if(!player.moving){
+      tryStartMove();
+      return;
+    }
+
+    player.t += dt / player.stepTime;
+    const t = Math.min(1, player.t);
+
+    // interpolació suau
+    const ease = t*t*(3-2*t);
+    player.x = player.fromX + (player.toX - player.fromX)*ease;
+    player.y = player.fromY + (player.toY - player.fromY)*ease;
+
+    // animació: 1 i 2 alternen mentre es mou
+    // (FireRed fa un patró idle->step1->idle->step2; aquí fem step1/step2)
+    const phase = (t < 0.5) ? 1 : 2;
+    player.frame = phase;
+
+    if(t >= 1){
+      player.moving = false;
+      player.frame = 0; // idle en acabar
+      // si segueix premuda direcció, començarà un altre pas al següent tick
+    }
+  }
+
+  // =========================================================
+  // Render escena (habitació FireRed-like)
+  // =========================================================
+  function render(){
+    // fons
+    drawParquet();
+    drawWalls();
+    drawCarpet();
+    drawBed();
+    drawDeskAndPC();
+    drawStairs();
+
+    // NPC + player (ordre per Y per “profunditat”)
+    const list = [
+      {y: npc.y, draw: ()=>drawChar(npcSheet, npc.x, npc.y-4, npc.dir, npc.frame, 2)},
+      {y: player.y, draw: ()=>drawChar(playerSheet, player.x, player.y-4, player.dir, player.frame, 2)},
+    ].sort((a,b)=>a.y-b.y);
+    list.forEach(o=>o.draw());
+  }
+
+  // =========================================================
+  // Loop
+  // =========================================================
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now-last)/1000);
+    last = now;
+
+    updateMove(dt);
+
+    // actualitzar coords npc (fix)
+    npc.x = npc.tx*TILE;
+    npc.y = npc.ty*TILE;
+
+    ctx.clearRect(0,0,BASE_W,BASE_H);
+    render();
+
+    requestAnimationFrame(loop);
+  }
   requestAnimationFrame(loop);
-}
 
-document.addEventListener("keydown",e=>{
-  if(e.key==="ArrowUp") player.y-=4;
-  if(e.key==="ArrowDown") player.y+=4;
-  if(e.key==="ArrowLeft") player.x-=4;
-  if(e.key==="ArrowRight") player.x+=4;
-});
-
-loop();
+})();
 </script>
 </body>
 </html>
