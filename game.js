@@ -26,7 +26,9 @@ const colors = {
 
 let player = {
 x:4,
-y:4
+y:4,
+direction:0,
+frame:0
 }
 
 function drawMap(){
@@ -55,8 +57,10 @@ function drawPlayer(){
 
 ctx.drawImage(
 playerSprite,
-0,0,
-16,16,
+player.frame*16,
+player.direction*16,
+16,
+16,
 player.x*tileSize,
 player.y*tileSize,
 tileSize,
@@ -78,10 +82,27 @@ draw()
 
 document.addEventListener("keydown",function(e){
 
-if(e.key=="ArrowUp") player.y--
-if(e.key=="ArrowDown") player.y++
-if(e.key=="ArrowLeft") player.x--
-if(e.key=="ArrowRight") player.x++
+if(e.key=="ArrowUp"){
+player.y--
+player.direction = 3
+}
+
+if(e.key=="ArrowDown"){
+player.y++
+player.direction = 0
+}
+
+if(e.key=="ArrowLeft"){
+player.x--
+player.direction = 1
+}
+
+if(e.key=="ArrowRight"){
+player.x++
+player.direction = 2
+}
+
+player.frame = (player.frame + 1) % 2
 
 draw()
 
