@@ -48,11 +48,15 @@ tileSize
 
 }
 
+const playerSprite = new Image()
+playerSprite.src = "assets/red.png"
+
 function drawPlayer(){
 
-ctx.fillStyle="red"
-
-ctx.fillRect(
+ctx.drawImage(
+playerSprite,
+0,0,
+16,16,
 player.x*tileSize,
 player.y*tileSize,
 tileSize,
